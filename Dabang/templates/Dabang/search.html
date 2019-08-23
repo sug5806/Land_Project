@@ -1,0 +1,493 @@
+{% load staticfiles %}
+<head>
+    <link rel="stylesheet" href="{% static 'Dabang/search.css' %}">
+
+    <style>
+        {##exam {#}
+        {#    box-sizing: content-box;#}
+        {#    width: 1000px;#}
+        {#    height: 70px;#}
+        {#    padding: 20px;#}
+        {#    border: 1px solid black;#}
+        {#    margin: 0 auto;#}
+        {# } #}
+
+        #house_price {
+            font-size: 5rem;
+            color: #6495ED;
+        }
+
+        #want {
+            font-size: 4.5rem;
+        }
+
+        #bang_search_text {
+        {#box-sizing: content-box;#}{#width:500px;#} border-top: 0.5px solid #3875d7;
+            border-bottom: 0.5px solid #3875d7;
+            padding: 20px;
+            padding-left: 300px;
+            padding-right: 300px;
+            height: 70px;
+            line-height: 70px;
+            white-space: nowrap;
+            text-align: justify-all;
+        }
+
+        #bang_search_btn {
+            margin-bottom: 2px;
+        }
+
+        #btn_span {
+            border-top: 0.5px solid #3875d7;
+            border-bottom: 0.5px solid #3875d7;
+            border-right: 0.5px solid #3875d7;
+            border-radius: 0px 17px 17px 0px;
+            padding: 20px;
+        }
+
+        #search_icon {
+            border-top: 0.5px solid #3875d7;
+            border-bottom: 0.5px solid #3875d7;
+            border-left: 0.5px solid #3875d7;
+            border-right: 0.5px solid gray;
+            border-radius: 17px 0px 0px 17px;
+            padding: 20px;
+        }
+
+
+    </style>
+
+    <link rel="stylesheet" href="{% static 'Dabang/css/all.css' %}">
+</head>
+
+{# 입력창 #}
+<div class="text-center">
+    <div>
+        <span id="want"> 우리동네 </span>
+        <span id="house_price">집값</span>
+        <span id="want">이 궁금하신가요?</span>
+    </div>
+
+    <div id="exam" class="container">
+        <div class="row">
+            <div class="col-4">
+
+                <form action="{% url 'dabang:search' %}" method="get">
+                    {% csrf_token %}
+
+                    <input type="text" onclick="cl()" id="sample6_postcode" class="form-control" placeholder="우편번호"
+                           required style="width:90%;display:inline;"> <i class="far fa-address-book"></i>
+                    <input type="text" onclick="cl()" id="sample6_address" class="form-control" placeholder="주소"
+                           required style="width:90%;display:inline;"> <i class="far fa-address-book"></i>
+                    <input type="text" onclick="cl()" id="sample6_extraAddress" class="form-control" placeholder="상세주소"
+                           required style="width:90%;display:inline;"> <i class="far fa-address-book"></i>
+                    <input type="month" id="sample6_date" class="form-control" name="ym" value="2015-12"
+                           required style="width:90%;display:inline;"> <i class="far fa-calendar-alt"></i>
+
+                    <div class="form-group">
+                        <select class="custom-select"  style="width:90%;display:inline;" id="custom">
+                            <option selected="" value="1">아파트매매</option>
+                            <option value="2">연립다세대 매매</option>
+                            <option value="3">단독다가구 매매</option>
+                            <option value="4">오피스텔 매매</option>
+                            <option value="6">아파트 전/월세</option>
+                            <option value="7">연립다세대 전/월세</option>
+                            <option value="8">단독/다가구 전/월세</option>
+                            <option value="9">오피스텔 전/월세</option>
+                        </select> <i class="fas fa-list"></i>
+                    </div >
+
+                    <button id="bang_search_btn2" class="btn btn-outline-info btn-lg" type="submit">검색!  <i
+                            class="fas fa-search-location"></i></button>
+                </form>
+
+            </div>
+
+
+            {#  지도 표시 위치 #}
+            <div class="col-8">
+                <span id="map" style="width:500px;height:500px;margin-top:10px;margin-left:100px;display:none;"></span>
+            </div>
+        </div>
+    </div>
+    <br>
+    <br>
+    <br>
+
+    {#  카드가 표시될 위치 #}
+    <div class="container">
+        <div id="row" class="row">
+
+
+        </div>
+    </div>
+
+</div>
+
+{# 지도 #}
+
+<script src="http://dmaps.daum.net/map_js_init/postcode.v2.js"></script>
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ My_API }}&libraries=services"></script>
+
+<script type="text/javascript">
+    var mapContainer = document.getElementById('map'), // 지도를 표시할 div
+        mapOption = {
+            center: new daum.maps.LatLng(37.620255, 127.044325), // 지도의 중심좌표
+            level: 2 // 지도의 확대 레벨
+        };
+
+    //지도를 미리 생성
+    var map = new daum.maps.Map(mapContainer, mapOption);
+
+    // 일반 지도와 스카이뷰로 지도 타입을 전환할 수 있는 지도타입 컨트롤을 생성합니다
+    var mapTypeControl = new daum.maps.MapTypeControl();
+
+
+    // 지도에 컨트롤을 추가해야 지도위에 표시됩니다
+    // daum.maps.ControlPosition은 컨트롤이 표시될 위치를 정의하는데 TOPRIGHT는 오른쪽 위를 의미합니다
+    map.addControl(mapTypeControl, daum.maps.ControlPosition.TOPRIGHT);
+
+
+    // 지도 확대 축소를 제어할 수 있는  줌 컨트롤을 생성합니다
+    var zoomControl = new daum.maps.ZoomControl();
+    map.addControl(zoomControl, daum.maps.ControlPosition.RIGHT);
+
+    // 지도에 교통정보를 표시하도록 지도타입을 추가합니다
+    map.addOverlayMapTypeId(daum.maps.MapTypeId.TRAFFIC);
+
+
+    //주소-좌표 변환 객체를 생성
+    var geocoder = new daum.maps.services.Geocoder();
+    //마커를 미리 생성
+    var marker = new daum.maps.Marker({
+        position: new daum.maps.LatLng(37.620255, 127.044325),
+        map: map
+    });
+
+    var themeObj = {
+        bgColor: "#949794", //바탕 배경색
+        searchBgColor: "#0B65C8", //검색창 배경색
+        //contentBgColor: "", //본문 배경색(검색결과,결과없음,첫화면,검색서제스트)
+        //pageBgColor: "", //페이지 배경색
+        //textColor: "", //기본 글자색
+        queryTextColor: "#FFFFFF" //검색창 글자색
+        //postcodeTextColor: "", //우편번호 글자색
+        //emphTextColor: "", //강조 글자색
+        //outlineColor: "", //테두리
+    };
+
+    function cl() {
+        return sample6_execDaumPostcode()
+    }
+
+    {# 검색창 #}
+    function sample6_execDaumPostcode() {
+        new daum.Postcode({
+            oncomplete: function (data) {
+                // 팝업에서 검색결과 항목을 클릭했을때 실행할 코드를 작성하는 부분.
+
+                // 각 주소의 노출 규칙에 따라 주소를 조합한다.
+                // 내려오는 변수가 값이 없는 경우엔 공백('')값을 가지므로, 이를 참고하여 분기 한다.
+                var addr = ''; // 주소 변수
+                var extraAddr = ''; // 참고항목 변수
+
+                //사용자가 선택한 주소 타입에 따라 해당 주소 값을 가져온다.
+                if (data.userSelectedType === 'R') { // 사용자가 도로명 주소를 선택했을 경우
+                    addr = data.roadAddress;
+                } else { // 사용자가 지번 주소를 선택했을 경우(J)
+                    addr = data.jibunAddress;
+                }
+
+                // 사용자가 선택한 주소가 도로명 타입일때 참고항목을 조합한다.
+                if (data.userSelectedType === 'R') {
+                    // 법정동명이 있을 경우 추가한다. (법정리는 제외)
+                    // 법정동의 경우 마지막 문자가 "동/로/가"로 끝난다.
+                    if (data.bname !== '' && /[동|로|가]$/g.test(data.bname)) {
+                        extraAddr += data.bname;
+                    }
+                    // 건물명이 있고, 공동주택일 경우 추가한다.
+                    if (data.buildingName !== '' && data.apartment === 'Y') {
+                        extraAddr += (extraAddr !== '' ? ', ' + data.buildingName : data.buildingName);
+                    }
+                    // 표시할 참고항목이 있을 경우, 괄호까지 추가한 최종 문자열을 만든다.
+                    if (extraAddr !== '') {
+                        extraAddr = ' (' + extraAddr + ')';
+                    }
+                    // 조합된 참고항목을 해당 필드에 넣는다.
+                    document.getElementById("sample6_extraAddress").value = extraAddr;
+
+                } else {
+                    document.getElementById("sample6_extraAddress").value = '';
+                }
+
+                // 우편번호와 주소 정보를 해당 필드에 넣는다.
+                document.getElementById('sample6_postcode').value = data.zonecode;
+                document.getElementById("sample6_address").value = addr;
+
+                $('#bang_search_btn2').click(function (e) {
+                    e.preventDefault();
+                    get_addr(data);
+
+                    geocoder.addressSearch(data.address, function (results, status) {
+                        // 정상적으로 검색이 완료됐으면
+                        if (status === daum.maps.services.Status.OK) {
+
+
+
+                            var result = results[0]; //첫번째 결과의 값을 활용
+
+                            // 해당 주소에 대한 좌표를 받아서
+                            var coords = new daum.maps.LatLng(result.y, result.x);
+                            // 지도를 보여준다.
+                            mapContainer.style.display = "block";
+                            map.relayout();
+                            // 지도 중심을 변경한다.
+                            map.setCenter(coords);
+                            // 마커를 결과값으로 받은 위치로 옮긴다.
+                            marker.setPosition(coords);
+
+
+
+
+                            // 인포윈도우에 표출될 내용으로 HTML 문자열이나 document element가 가능합니다
+                            var iwContent = '<div class ="label"><span class="left"></span><span class="center">' + data.buildingName + '</span><span class="right"></span></div>',
+                                iwPosition = new daum.maps.LatLng(result.y, result.x); //인포윈도우 표시 위치입니다
+                                iwRemoveable = true;
+
+                            // 인포윈도우를 생성합니다
+                            var infowindow = new daum.maps.InfoWindow({
+                                position : iwPosition,
+                                content : iwContent,
+                                {#removable : iwRemoveable,#}
+                            });
+
+                            infowindow.open(map, marker);
+
+                        }
+                    });
+                });
+
+
+            },
+            theme: themeObj,
+        }).open();
+    }
+
+    class Building {
+        constructor(name, price, year, month, day, floor) {
+            this.name = name;
+            this.price = price;
+            this.year = year;
+            this.month = month;
+            this.day = day;
+            this.floor = floor;
+        }
+    }
+
+    {# 주소 ajax #}
+    function get_addr(real) {
+        var ym = document.getElementById('sample6_date').value;
+        var sl = document.getElementById('custom').value;
+
+        var token = '{{csrf_token}}';
+
+        $.post({
+            headers: { "X-CSRFToken": token },
+            method: 'POST',
+            url: {% url 'dabang:search' %},
+
+            data: {'addr': real, 'ym': ym, 'sl': sl, },
+            dataType: 'json',
+
+            success: function (data) {
+
+            },
+            error: function (data) {
+
+                alert("didn't work");
+            },
+        }).done(function (context) {
+            len = context.list.length;
+
+            var price = []; {# 거래금액 #}
+            
+            var name = []; {# 아파트 or 연립다세대 건물 이름 #}
+            var year = []; {# 거래 년도 #}
+            var month = []; {# 거래 월 #}
+            var day = []; {# 거래 일 #}
+            var floor = []; {# 층 #}
+            var year_of_construction = []; {# 건축년도 #}
+            var area = []; {# 전용 면적 #}
+            var area2 = []; {# 연 면적 #}
+            var area3 = []; {# 대지권 면적 #}
+            var area4 = []; {# 대지 면적 #}
+            var area5 = []; {# 계약 면적 #}
+            var deposit = []; {# 보증금 #}
+            var monthly_rent = []; {# 월세 #}
+            var house_type = []; {# 주택 종류 #}
+
+
+            {# 뷰에서 정보 받아오기 #}
+            var address = context.address; {# 주소 #}
+            var zonecode = context.zonecode; {# 지역 코드 #}
+            var building_name = context.building_name;  {# 건물 이름 #}
+
+
+            for (var i = 0; i < len; i++) {
+                if(sl==='1'| sl === '2'| sl === '6'|sl === '7'){
+
+                    if(sl==='1' | sl === '6'){
+                        name[i] = context.list[i]['아파트'];
+                    }
+
+                    else{
+                        if(sl ==='2') {
+                            area3[i] = context.list[i]['대지권면적'];
+                        }
+                        name[i] = context.list[i]['연립다세대'];
+
+                    }
+
+                    if (sl==='6'| sl=== '7'){
+                        deposit[i] = context.list[i]['보증금액'];
+                        monthly_rent[i] = context.list[i]['월세금액'];
+                        {#alert(monthly_rent[i])#}
+                    }
+
+                    year_of_construction[i] = context.list[i]['건축년도'];
+                    floor[i] = context.list[i]['층'];
+                    area[i] = context.list[i]['전용면적'];
+                }
+
+                {# 3, 4, 8, 9 #}
+                else{
+                    {# 4, 9 #}
+                    if (sl === '4' | sl === '9'){
+                        area[i] = context.list[i]['전용면적'];
+                        floor[i] = context.list[i]['층'];
+                        name[i] = context.list[i]['단지'];
+                        {#if(sl === '4'){#}
+                        {#    name[i] = context.list[i]['단지'];#}
+                        {# }#}
+
+                        if(sl === '9'){
+                            alert(i);
+                            monthly_rent[i] = context.list[i]['월세'];
+                            alert("월세 " + monthly_rent[i]);
+                            deposit[i] = context.list[i]['보증금'];
+                        }
+
+                    }
+
+                    else{
+                        if (sl ==='3'){
+                            area2[i] = context.list[i]['연면적'];
+                            area4[i] = context.list[i]['대지면적'];
+                            house_type[i] = context.list[i]['주택유형'];
+                        }
+                        {# sl = 8 #}
+                        else{
+                            area5[i] = context.list[i]['계약면적'];
+                            monthly_rent[i] = context.list[i]['월세금액'];
+                            deposit[i] = context.list[i]['보증금액'];
+                        }
+
+                    }
+
+                }
+
+                {# 전 메뉴 공통 항목 #}
+                year_of_construction[i] = context.list[i]['건축년도'];
+                year[i] = context.list[i]['년'];
+                month[i] = context.list[i]['월'];
+                day[i] = context.list[i]['일'];
+                price[i] = context.list[i]['거래금액'];
+
+            }
+
+
+
+
+
+            function make_html(index) {
+
+                html = "<div class=\"col-4\" style=\"display: block;\"><div class=\"card mb-3\">";
+
+                if (name[index]) {
+                    html += "<h4 id=\"card-header\" class=\"card-header\">" + name[index] + "</h4>";
+                 }
+
+                html += "<div class=\"card-body\"><p class=\"card-text\">";
+
+                if (price[index]){
+                    html += "거래금액: " + price[index] + " 만원<br>";
+                 }
+
+                if (year_of_construction[index]){
+                    html += "건축년도: " + year_of_construction[index] + "<br>";
+                 }
+
+                if (deposit[index]) {
+                    html += "보증금: " + deposit[index] + "만<br>";
+                }
+
+                if (monthly_rent[index] !== '0') {
+                    html += "월세: " + monthly_rent[index] + "<br>";
+                }
+                else{
+                    html += "전세<br> "
+                }
+
+
+                html += "거래일: " + year[index] + "년 " + month[index] + "월 " + day[index] + "일" + "<br></p></div>" ;
+                html += "<div class=\"card-body\"><p class=\"card-text\">주소 : " + address + "<br></p></div>";
+
+                if(house_type[index]){
+                    html += "주택유형 : " + house_type[index]
+                }
+
+                html += "<ul class=\"list-group list-group-flush\">";
+
+                if (area[index]){
+                    html += "<li class=\"list-group-item\">전용면적: " + area[index] + "m<sup>2</sup> (" + (area[index]/3.3).toFixed(1) + "평)</li>"
+                 }
+
+                if (area2[index]) {
+                    html += "<li class=\"list-group-item\">연 면적: " + area2[index] + "m<sup>2</sup> (" + (area2[index]/3.3).toFixed(1) + "평)</li>"
+                 }
+
+                if (area3[index]) {
+                    html += "<li class=\"list-group-item\">대지권 면적: " + area3[index] + "m<sup>2</sup> (" + (area3[index]/3.3).toFixed(1) + "평)</li>"
+                 }
+
+                if (area4[index]) {
+                    html += "<li class=\"list-group-item\">대지 면적: " + area4[index] + "m<sup>2</sup> (" + (area4[index]/3.3).toFixed(1) + "평)</li>"
+                 }
+
+                if (area5[index]) {
+                    html += "<li class=\"list-group-item\">계약 면적: " + area5[index] + "m<sup>2</sup> (" + (area5[index]/3.3).toFixed(1) + "평)</li>"
+                 }
+
+                if (floor[index]){
+                    html += "<li class=\"list-group-item\">층:&nbsp&nbsp&nbsp" + floor[index] + "층</li>"
+                 }
+
+                html +=  "</ul></div></di>";
+
+
+
+
+                return html
+            }
+
+            for (var index = 0; index < len; index++) {
+
+                    html = make_html(index);
+                    $(html).appendTo('#row');
+
+            }
+
+        });
+    }
+
+</script>
