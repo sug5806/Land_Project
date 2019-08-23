@@ -1,1 +1,1 @@
-web: gunicorn Dabang.wsgi --log-file -
+web: gunicorn Land_project.wsgi --log-file -
